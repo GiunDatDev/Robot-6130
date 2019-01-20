@@ -7,6 +7,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PWMVictorSPX;
 import edu.wpi.first.wpilibj.SpeedController;
@@ -27,13 +28,17 @@ public class Robot extends TimedRobot {
   private static final int masterRightPort = 2;
   private static final int slaveRightPort = 3;
   private static final int controllerPort = 0;
+  private static final int pneumaticControllerPort = 1;
   
   // Define a deathzone for the joystick
   private static final double joystickDeathZone = 0.3;
+  // Define a zone to activate pneumatic
+  private static final double pneumaticZone = 0.5;
 
 
   private SpeedController masterLeftMotor, slaveLeftMotor, masterRightMotor, slaveRightMotor;
   private Joystick driverController;
+  private Joystick pneumaticController;
 
   @Override
   public void robotInit() {
@@ -42,6 +47,7 @@ public class Robot extends TimedRobot {
     masterRightMotor = new PWMVictorSPX(masterRightPort);
     slaveRightMotor = new PWMVictorSPX(slaveRightPort);
     driverController = new Joystick(controllerPort);
+    pneumaticController = new Joystick(pneumaticControllerPort);
   }
 
   // Running forward or backward depended on the vertical value of the joystick
@@ -89,8 +95,47 @@ public class Robot extends TimedRobot {
    }
   }
 
+  // This code from here will control the pneumatic system
+  DoubleSolenoid firstSolenoid = new DoubleSolenoid(0, 2);
+  DoubleSolenoid secondSolenoid = new DoubleSolenoid(1, 3);
+
+  private void forwardPiston(){
+    firstSolenoid.set(DoubleSolenoid.Value.kForward);
+    secondSolenoid.set(DoubleSolenoid.Value.kForward);
+  }
+
+  private void reversePiston(){
+    firstSolenoid.set(DoubleSolenoid.Value.kReverse);
+    secondSolenoid.set(DoubleSolenoid.Value.kReverse);
+  }
+
+  private void stopPiston(){
+    firstSolenoid.set(DoubleSolenoid.Value.kOff);
+    secondSolenoid.set(DoubleSolenoid.Value.kOff);
+  }
+
+  private boolean pneumaticCheckZone(double zoneValue){
+    if (zoneValue >= pneumaticZone){
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
+  public void pistonController(){
+      double pneumaticYValue = pneumaticController.getY();
+      if (pneumaticCheckZone(pneumaticYValue) == true){
+        forwardPiston();
+      }
+      else {
+        reversePiston();
+      }
+  }
+
   @Override
   public void teleopPeriodic() {
     driveRobot();
+    pistonController();
   }
 }
